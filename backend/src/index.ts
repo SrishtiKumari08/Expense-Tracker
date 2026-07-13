@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db';
 import authRoutes from './routes/auth';
+import expenseRoutes from './routes/expense';
 
 // Load Environment variables
 dotenv.config();
@@ -23,6 +24,7 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/expenses', expenseRoutes);
 
 // Health Check / Root route
 app.get('/', (req, res) => {

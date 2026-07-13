@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
+import Expenses from './pages/Expenses';
 
 // Placeholder components for modules not requested yet
 const ExpensesPlaceholder: React.FC = () => (
@@ -68,7 +69,7 @@ export const App: React.FC = () => {
             {/* Protected Routes Layout Wrapper */}
             <Route path="/" element={<Layout />}>
               <Route index element={<Dashboard />} />
-              <Route path="expenses" element={<ExpensesPlaceholder />} />
+              <Route path="expenses" element={<Expenses />} />
               <Route path="analytics" element={<AnalyticsPlaceholder />} />
               <Route path="budgets" element={<BudgetsPlaceholder />} />
               <Route path="recurring" element={<RecurringPlaceholder />} />

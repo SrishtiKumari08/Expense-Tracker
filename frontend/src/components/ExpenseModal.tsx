@@ -45,6 +45,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Pending'>('Paid');
   const [notes, setNotes] = useState<string>('');
+  const [upiId, setUpiId] = useState<string>('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +78,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         setPaymentMethod(expenseToEdit.paymentMethod || 'Cash');
         setPaymentStatus(expenseToEdit.paymentStatus || 'Paid');
         setNotes(expenseToEdit.notes || '');
+        setUpiId(expenseToEdit.upiId || '');
       } else {
         // Reset to defaults
         setType('expense');
@@ -89,6 +91,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         setPaymentMethod('Cash');
         setPaymentStatus('Paid');
         setNotes('');
+        setUpiId('');
       }
     }
   }, [isOpen, expenseToEdit]);
@@ -116,6 +119,17 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       return;
     }
 
+    if (paymentMethod === 'UPI') {
+      if (!upiId.trim()) {
+        setError('Please enter a recipient UPI ID.');
+        return;
+      }
+      if (!/^[\w.\-_]+@[\w.\-_]+$/.test(upiId.trim())) {
+        setError('Please enter a valid UPI ID format (e.g., recipient@bank).');
+        return;
+      }
+    }
+
     setLoading(true);
 
     const payload = {
@@ -127,6 +141,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       paymentMethod,
       paymentStatus,
       notes: notes.trim() || undefined,
+      upiId: paymentMethod === 'UPI' ? upiId.trim() : undefined,
     };
 
     try {
@@ -158,6 +173,12 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
     ...(user?.customCategories || []).filter((c) => !DEFAULT_CATEGORIES.includes(c)),
     'Custom...',
   ];
+
+  const isValidUpi = /^[\w.\-_]+@[\w.\-_]+$/.test(upiId.trim());
+  const cleanAmount = parseFloat(amount);
+  const upiLink = upiId.trim() && isValidUpi
+    ? `upi://pay?pa=${upiId.trim()}&pn=SpendWise&cu=INR${!isNaN(cleanAmount) && cleanAmount > 0 ? `&am=${cleanAmount}` : ''}`
+    : '';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -317,6 +338,48 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 className="w-full rounded-xl border border-app-border bg-app-card px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-brand-primary transition-colors"
                 required
               />
+            </div>
+          )}
+
+          {/* UPI ID Input & QR Code Generation */}
+          {paymentMethod === 'UPI' && (
+            <div className="space-y-3 animate-fade-in border-t border-app-border/40 pt-3">
+              <div>
+                <label htmlFor="upiId" className="text-xs font-semibold text-app-text-muted uppercase tracking-wider block mb-1.5">
+                  Recipient UPI ID
+                </label>
+                <input
+                  id="upiId"
+                  type="text"
+                  placeholder="e.g. name@upi, name@okaxis"
+                  value={upiId}
+                  onChange={(e) => setUpiId(e.target.value)}
+                  className="w-full rounded-xl border border-app-border bg-app-card px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-brand-primary transition-colors"
+                  required={paymentMethod === 'UPI'}
+                />
+                {upiId.trim() && !isValidUpi && (
+                  <p className="text-[10px] text-amber-500 font-semibold mt-1">
+                    ⚠️ Invalid VPA format. Must be like user@bankname.
+                  </p>
+                )}
+              </div>
+              {upiId.trim() && isValidUpi && (
+                <div className="flex flex-col items-center justify-center p-4 border border-app-border bg-app-bg/40 rounded-2xl relative overflow-hidden space-y-2">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-app-text-muted">Scan QR to Complete Payment</span>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiLink)}`}
+                    alt="UPI payment QR Code"
+                    className="h-36 w-36 bg-white p-1.5 rounded-xl shadow-md border border-app-border transition-transform hover:scale-105"
+                  />
+                  <div className="text-center space-y-0.5">
+                    <span className="text-xs font-semibold text-app-text block">Recipient: SpendWise</span>
+                    <span className="text-[10px] text-app-text-muted block font-mono break-all">{upiId.trim()}</span>
+                  </div>
+                  <p className="text-[10px] text-app-text-muted text-center max-w-xs leading-relaxed border-t border-app-border/40 pt-2 font-normal">
+                    Note: Ensure this UPI ID is linked to an active bank account. If your mobile app says "add bank account", link a bank account inside your UPI application.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

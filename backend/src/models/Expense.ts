@@ -10,6 +10,7 @@ export interface IExpense extends Document {
   paymentMethod: 'Cash' | 'Card' | 'UPI' | 'Bank Transfer';
   paymentStatus: 'Paid' | 'Pending';
   notes?: string;
+  upiId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +60,10 @@ const expenseSchema = new Schema<IExpense>(
       required: true,
     },
     notes: {
+      type: String,
+      trim: true,
+    },
+    upiId: {
       type: String,
       trim: true,
     },

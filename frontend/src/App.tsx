@@ -11,17 +11,9 @@ import Dashboard from './pages/Dashboard';
 import Expenses from './pages/Expenses';
 import Analytics from './pages/Analytics';
 import Budgets from './pages/Budgets';
+import PaymentHistory from './pages/PaymentHistory';
 
 // Placeholder components for modules not requested yet
-
-const RecurringPlaceholder: React.FC = () => (
-  <div className="glass-card rounded-2xl p-8 text-center space-y-3">
-    <h2 className="text-xl font-bold tracking-tight">Recurring Payments</h2>
-    <p className="text-sm text-app-text-muted max-w-md mx-auto">
-      Monitor your active monthly SaaS subscriptions, utility direct debits, and automatic income payouts.
-    </p>
-  </div>
-);
 
 const SettingsPlaceholder: React.FC = () => (
   <div className="glass-card rounded-2xl p-8 text-center space-y-3">
@@ -50,7 +42,7 @@ export const App: React.FC = () => {
                 <Route path="expenses" element={<Expenses />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="budgets" element={<Budgets />} />
-                <Route path="recurring" element={<RecurringPlaceholder />} />
+                <Route path="payments" element={<PaymentHistory />} />
                 <Route path="settings" element={<SettingsPlaceholder />} />
               </Route>
 

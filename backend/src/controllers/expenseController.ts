@@ -27,7 +27,7 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
-    const { type, amount, category, description, date, paymentMethod, paymentStatus, notes } = req.body;
+    const { type, amount, category, description, date, paymentMethod, paymentStatus, notes, upiId } = req.body;
 
     if (amount === undefined || !category || !description || !paymentMethod) {
       return res.status(400).json({ message: 'Required fields are missing' });
@@ -43,6 +43,7 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
       paymentMethod,
       paymentStatus: paymentStatus || 'Paid',
       notes,
+      upiId,
     });
 
     // Auto-save custom category to User's customCategories if not a default
@@ -70,7 +71,7 @@ export const updateExpense = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
     const { id } = req.params;
-    const { type, amount, category, description, date, paymentMethod, paymentStatus, notes } = req.body;
+    const { type, amount, category, description, date, paymentMethod, paymentStatus, notes, upiId } = req.body;
 
     const expense = await Expense.findById(id);
 
@@ -101,6 +102,7 @@ export const updateExpense = async (req: AuthRequest, res: Response) => {
     expense.paymentMethod = paymentMethod || expense.paymentMethod;
     expense.paymentStatus = paymentStatus || expense.paymentStatus;
     expense.notes = notes !== undefined ? notes : expense.notes;
+    expense.upiId = upiId !== undefined ? upiId : expense.upiId;
 
     const updatedExpense = await expense.save();
     res.status(200).json(updatedExpense);

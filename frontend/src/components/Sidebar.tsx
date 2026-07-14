@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutGrid, TrendingDown, BarChart3, Settings, LogOut, X, CreditCard, Calendar } from 'lucide-react';
+import { LayoutGrid, TrendingDown, BarChart3, Settings, LogOut, X, CreditCard, History } from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { name: 'Expenses', path: '/expenses', icon: TrendingDown },
     { name: 'Analytics', path: '/analytics', icon: BarChart3 },
     { name: 'Budgets', path: '/budgets', icon: CreditCard },
-    { name: 'Recurring', path: '/recurring', icon: Calendar },
+    { name: 'Payment History', path: '/payments', icon: History },
     { name: 'Settings', path: '/settings', icon: Settings },
   ];
 

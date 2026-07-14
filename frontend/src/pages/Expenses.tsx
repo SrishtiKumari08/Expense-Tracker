@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import API from '../services/api';
 import ExpenseModal from '../components/ExpenseModal';
-import { Pencil, Trash2, Plus, AlertTriangle, Calendar, Tag, CreditCard, CheckCircle, Clock } from 'lucide-react';
+import { Pencil, Trash2, Plus, AlertTriangle, Calendar, Search, CheckCircle, Clock } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 interface Expense {
   _id: string;
@@ -16,9 +18,20 @@ interface Expense {
 }
 
 export const Expenses: React.FC = () => {
+  const { user } = useAuth();
+  const { showToast } = useToast();
+
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // Search and Filter States
+  const [searchTermDesc, setSearchTermDesc] = useState('');
+  const [searchTermAmount, setSearchTermAmount] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [sortBy, setSortBy] = useState('latest');
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,7 +49,8 @@ export const Expenses: React.FC = () => {
       setExpenses(response.data);
     } catch (err: any) {
       console.error('Error fetching expenses:', err);
-      setError(err.response?.data?.message || 'Failed to load expenses.');
+      const msg = err.response?.data?.message || 'Failed to load transactions.';
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -67,14 +81,122 @@ export const Expenses: React.FC = () => {
     try {
       await API.delete(`/expenses/${expenseToDelete._id}`);
       setExpenses(expenses.filter((exp) => exp._id !== expenseToDelete._id));
+      showToast('Transaction deleted successfully!', 'success');
       setIsDeleteConfirmOpen(false);
       setExpenseToDelete(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting expense:', err);
+      showToast('Failed to delete transaction.', 'error');
     } finally {
       setDeleteLoading(false);
     }
   };
+
+  // Combine default categories and unique custom ones from loaded data and user object
+  const uniqueCategories = Array.from(
+    new Set([
+      'Food',
+      'Shopping',
+      'Travel',
+      'Rent',
+      'Entertainment',
+      'Bills',
+      'Medical',
+      'Education',
+      'Salary',
+      'Others',
+      ...(user?.customCategories || []),
+      ...expenses.map((e) => e.category),
+    ])
+  );
+
+  // Filter and Sort implementation
+  const filteredAndSortedExpenses = expenses
+    .filter((expense) => {
+      // 1. Search by Description
+      if (searchTermDesc.trim() && !expense.description.toLowerCase().includes(searchTermDesc.toLowerCase())) {
+        return false;
+      }
+
+      // 2. Search by Amount
+      if (searchTermAmount.trim()) {
+        const amt = parseFloat(searchTermAmount);
+        if (!isNaN(amt) && expense.amount !== amt) {
+          return false;
+        }
+      }
+
+      // 3. Search by Category
+      if (filterCategory && expense.category !== filterCategory) {
+        return false;
+      }
+
+      // 4. Date Filter
+      const txDate = new Date(expense.date);
+      const now = new Date();
+
+      if (dateFilter === 'today') {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        if (txDate < startOfToday) return false;
+      } else if (dateFilter === 'week') {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfWeek = new Date(startOfToday);
+        startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay()); // Sunday
+        if (txDate < startOfWeek) return false;
+      } else if (dateFilter === 'month') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        if (txDate < startOfMonth) return false;
+      } else if (dateFilter === 'custom') {
+        if (customStartDate) {
+          const start = new Date(customStartDate);
+          start.setHours(0, 0, 0, 0);
+          if (txDate < start) return false;
+        }
+        if (customEndDate) {
+          const end = new Date(customEndDate);
+          end.setHours(23, 59, 59, 999);
+          if (txDate > end) return false;
+        }
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'highest') {
+        return b.amount - a.amount;
+      }
+      if (sortBy === 'lowest') {
+        return a.amount - b.amount;
+      }
+      if (sortBy === 'latest') {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      }
+      if (sortBy === 'oldest') {
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      }
+      if (sortBy === 'alphabetical') {
+        return a.description.localeCompare(b.description);
+      }
+      return 0;
+    });
+
+  // Render Skeleton rows for loading state
+  const renderSkeletons = () => (
+    <>
+      {[...Array(5)].map((_, i) => (
+        <tr key={i} className="animate-pulse border-b border-app-border bg-app-bg/5">
+          <td className="px-6 py-4"><div className="h-4 bg-app-border rounded w-16" /></td>
+          <td className="px-6 py-4"><div className="h-4 bg-app-border rounded w-32" /></td>
+          <td className="px-6 py-4"><div className="h-4 bg-app-border rounded w-20" /></td>
+          <td className="px-6 py-4"><div className="h-4 bg-app-border rounded w-24" /></td>
+          <td className="px-6 py-4"><div className="h-4 bg-app-border rounded w-16" /></td>
+          <td className="px-6 py-4"><div className="h-4 bg-app-border rounded w-12" /></td>
+          <td className="px-6 py-4 text-right"><div className="h-4 bg-app-border rounded w-16 ml-auto" /></td>
+          <td className="px-6 py-4"><div className="h-4 bg-app-border rounded w-16 mx-auto" /></td>
+        </tr>
+      ))}
+    </>
+  );
 
   return (
     <div className="space-y-6">
@@ -95,48 +217,154 @@ export const Expenses: React.FC = () => {
         </button>
       </div>
 
-      {error && (
-        <div className="rounded-xl bg-rose-500/10 p-4 text-sm font-medium text-rose-500 border border-rose-500/15">
-          {error}
+      {/* Control Panel (Search, Filter, Sort) */}
+      <div className="glass-card rounded-2xl p-4 space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          {/* Search by Description */}
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4.5 w-4.5 text-app-text-muted" />
+            <input
+              type="text"
+              placeholder="Search description..."
+              value={searchTermDesc}
+              onChange={(e) => setSearchTermDesc(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-app-border bg-app-card focus:outline-none focus:border-brand-primary transition-colors"
+            />
+          </div>
+
+          {/* Search by Amount */}
+          <div className="relative">
+            <span className="absolute left-3 top-2.5 text-sm font-semibold text-app-text-muted">$</span>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Search amount..."
+              value={searchTermAmount}
+              onChange={(e) => setSearchTermAmount(e.target.value)}
+              className="w-full pl-8 pr-4 py-2.5 text-sm rounded-xl border border-app-border bg-app-card focus:outline-none focus:border-brand-primary transition-colors"
+            />
+          </div>
+
+          {/* Filter by Category */}
+          <div className="relative">
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full px-4 py-2.5 text-sm rounded-xl border border-app-border bg-app-card focus:outline-none focus:border-brand-primary transition-colors appearance-none cursor-pointer"
+            >
+              <option value="">All Categories</option>
+              {uniqueCategories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date Filter Dropdown */}
+          <div className="relative">
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full px-4 py-2.5 text-sm rounded-xl border border-app-border bg-app-card focus:outline-none focus:border-brand-primary transition-colors appearance-none cursor-pointer"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="custom">Custom Date</option>
+            </select>
+          </div>
+
+          {/* Sorting Dropdown */}
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-4 py-2.5 text-sm rounded-xl border border-app-border bg-app-card focus:outline-none focus:border-brand-primary transition-colors appearance-none cursor-pointer"
+            >
+              <option value="latest">Latest</option>
+              <option value="oldest">Oldest</option>
+              <option value="highest">Highest Amount</option>
+              <option value="lowest">Lowest Amount</option>
+              <option value="alphabetical">Alphabetical</option>
+            </select>
+          </div>
         </div>
-      )}
+
+        {/* Custom Date Picker Inputs */}
+        {dateFilter === 'custom' && (
+          <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-app-border/40 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <label htmlFor="startDate" className="text-xs font-semibold text-app-text-muted uppercase">From</label>
+              <input
+                id="startDate"
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="px-3 py-2 text-sm rounded-lg border border-app-border bg-app-card focus:outline-none focus:border-brand-primary transition-colors"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="endDate" className="text-xs font-semibold text-app-text-muted uppercase">To</label>
+              <input
+                id="endDate"
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="px-3 py-2 text-sm rounded-lg border border-app-border bg-app-card focus:outline-none focus:border-brand-primary transition-colors"
+              />
+            </div>
+            {(customStartDate || customEndDate) && (
+              <button
+                onClick={() => {
+                  setCustomStartDate('');
+                  setCustomEndDate('');
+                }}
+                className="text-xs font-semibold text-rose-500 hover:underline"
+              >
+                Clear range
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Main Table Card */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 space-y-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-primary border-t-transparent" />
-            <p className="text-sm text-app-text-muted font-medium">Fetching transaction history...</p>
-          </div>
-        ) : expenses.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 px-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-app-bg border border-app-border text-app-text-muted">
-              <Calendar className="h-8 w-8" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold tracking-tight">No Transactions Logged</h3>
-              <p className="text-sm text-app-text-muted max-w-sm">
-                Get started by clicking the "Add Transaction" button above to record your first income or expense.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-app-border bg-app-bg/50 text-xs font-bold uppercase tracking-wider text-app-text-muted">
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">Description</th>
-                  <th className="px-6 py-4">Category</th>
-                  <th className="px-6 py-4">Payment Method</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Notes</th>
-                  <th className="px-6 py-4 text-right">Amount</th>
-                  <th className="px-6 py-4 text-center">Actions</th>
+      <div className="glass-card rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-app-border bg-app-bg/50 text-xs font-bold uppercase tracking-wider text-app-text-muted">
+                <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4">Description</th>
+                <th className="px-6 py-4">Category</th>
+                <th className="px-6 py-4">Payment Method</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Notes</th>
+                <th className="px-6 py-4 text-right">Amount</th>
+                <th className="px-6 py-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-app-border text-sm font-medium">
+              {loading ? (
+                renderSkeletons()
+              ) : filteredAndSortedExpenses.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-20 text-center space-y-4 px-6">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-app-bg border border-app-border text-app-text-muted">
+                      <Calendar className="h-8 w-8" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-bold tracking-tight">No Transactions Found</h3>
+                      <p className="text-sm text-app-text-muted max-w-sm mx-auto">
+                        No transactions match your current search queries or filters. Try adjusting them.
+                      </p>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-app-border text-sm font-medium">
-                {expenses.map((expense) => {
+              ) : (
+                filteredAndSortedExpenses.map((expense) => {
                   const isIncome = expense.type === 'income';
                   return (
                     <tr key={expense._id} className="hover:bg-app-bg/25 transition-colors group">
@@ -203,11 +431,11 @@ export const Expenses: React.FC = () => {
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Expense Add/Edit Modal */}

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import Expense from '../models/Expense';
+import User from '../models/User';
 
 // @desc    Get all expenses/incomes for authenticated user
 // @route   GET /api/expenses
@@ -44,6 +45,14 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
       notes,
     });
 
+    // Auto-save custom category to User's customCategories if not a default
+    const defaults = ['Food', 'Shopping', 'Travel', 'Rent', 'Entertainment', 'Bills', 'Medical', 'Education', 'Salary', 'Others'];
+    if (category && !defaults.includes(category)) {
+      await User.findByIdAndUpdate(req.user.id, {
+        $addToSet: { customCategories: category }
+      });
+    }
+
     const savedExpense = await expense.save();
     res.status(201).json(savedExpense);
   } catch (error) {
@@ -72,6 +81,16 @@ export const updateExpense = async (req: AuthRequest, res: Response) => {
     // Check user ownership
     if (expense.user.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to update this expense' });
+    }
+
+    // Auto-save custom category to User's customCategories if updated and not a default
+    if (category && category !== expense.category) {
+      const defaults = ['Food', 'Shopping', 'Travel', 'Rent', 'Entertainment', 'Bills', 'Medical', 'Education', 'Salary', 'Others'];
+      if (!defaults.includes(category)) {
+        await User.findByIdAndUpdate(req.user.id, {
+          $addToSet: { customCategories: category }
+        });
+      }
     }
 
     expense.type = type || expense.type;

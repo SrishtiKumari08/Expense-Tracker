@@ -5,6 +5,7 @@ export interface User {
   _id: string;
   name: string;
   email: string;
+  customCategories?: string[];
 }
 
 interface AuthContextType {
@@ -16,6 +17,7 @@ interface AuthContextType {
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -99,6 +101,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
   };
 
+  // Refresh user details (to get updated customCategories)
+  const refreshUser = async () => {
+    if (!token) return;
+    try {
+      const response = await API.get('/auth/me');
+      setUser(response.data);
+    } catch (err) {
+      console.error('Failed to refresh user:', err);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -110,6 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signup,
         logout,
         clearError,
+        refreshUser,
       }}
     >
       {children}

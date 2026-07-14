@@ -6,6 +6,7 @@ export interface IUserDocument extends Schema {
   name: string;
   email: string;
   passwordHash: string;
+  customCategories: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +33,10 @@ const userSchema = new Schema(
       type: String,
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters long'],
+    },
+    customCategories: {
+      type: [String],
+      default: [],
     },
   },
   {

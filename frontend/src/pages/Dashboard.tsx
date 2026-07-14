@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
 import ExpenseModal from '../components/ExpenseModal';
 import { ArrowUpRight, ArrowDownRight, Wallet, ArrowRight, FileDown, Plus } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 interface Expense {
   _id: string;
@@ -16,23 +17,89 @@ interface Expense {
   paymentStatus: 'Paid' | 'Pending';
 }
 
+const DashboardSkeleton: React.FC = () => {
+  return (
+    <div className="space-y-6 animate-pulse">
+      {/* Metrics Row Skeleton */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="glass-card rounded-2xl p-6 relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="h-4 bg-app-border rounded w-24" />
+              <div className="h-10 w-10 rounded-xl bg-app-border" />
+            </div>
+            <div className="mt-4 space-y-2">
+              <div className="h-8 bg-app-border rounded w-32" />
+              <div className="h-3 bg-app-border rounded w-48" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main Widgets Skeleton */}
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* Recent activity skeleton */}
+        <div className="glass-card rounded-2xl p-6 lg:col-span-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="h-5 bg-app-border rounded w-28" />
+            <div className="h-4 bg-app-border rounded w-16" />
+          </div>
+          <div className="divide-y divide-app-border">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-app-border" />
+                  <div className="space-y-1.5">
+                    <div className="h-4 bg-app-border rounded w-24" />
+                    <div className="h-3 bg-app-border rounded w-32" />
+                  </div>
+                </div>
+                <div className="h-4 bg-app-border rounded w-12" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Budget goal skeleton */}
+        <div className="glass-card rounded-2xl p-6 lg:col-span-4 flex flex-col justify-between space-y-6">
+          <div className="space-y-4">
+            <div className="h-5 bg-app-border rounded w-28" />
+            <div className="flex flex-col items-center justify-center py-4">
+              <div className="relative flex h-36 w-36 items-center justify-center rounded-full border-10 border-app-border/40 animate-pulse" />
+              <div className="h-3 bg-app-border rounded w-48 mt-4" />
+            </div>
+          </div>
+          <div className="border-t border-app-border pt-4 mt-4">
+            <div className="flex justify-between items-center">
+              <div className="h-4 bg-app-border rounded w-12" />
+              <div className="h-5 bg-app-border rounded-full w-20" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await API.get('/expenses');
       setExpenses(response.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
+      showToast('Failed to sync dashboard metrics.', 'error');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -82,6 +149,10 @@ export const Dashboard: React.FC = () => {
   // Get 5 most recent transactions
   const recentTransactions = expenses.slice(0, 5);
 
+  const handleModalSave = () => {
+    fetchDashboardData(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Panel */}
@@ -111,10 +182,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 space-y-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-primary border-t-transparent" />
-          <p className="text-sm text-app-text-muted font-medium">Loading financial metrics...</p>
-        </div>
+        <DashboardSkeleton />
       ) : (
         <>
           {/* Metrics Rows */}
@@ -165,9 +233,9 @@ export const Dashboard: React.FC = () => {
                     recentTransactions.map((tx) => {
                       const isIncome = tx.type === 'income';
                       return (
-                        <div key={tx._id} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+                        <div key={tx._id} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0 font-medium">
                           <div className="flex items-center gap-3">
-                            <div className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-sm ${
+                            <div className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-sm shrink-0 ${
                               isIncome 
                                 ? 'bg-emerald-500/10 text-emerald-500' 
                                 : 'bg-app-bg text-app-text-muted'
@@ -175,13 +243,13 @@ export const Dashboard: React.FC = () => {
                               {tx.description.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <p className="text-sm font-semibold">{tx.description}</p>
-                              <p className="text-xs text-app-text-muted">
+                              <p className="text-sm font-semibold text-app-text">{tx.description}</p>
+                              <p className="text-xs text-app-text-muted font-normal">
                                 {tx.category} • {new Date(tx.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                               </p>
                             </div>
                           </div>
-                          <span className={`text-sm font-bold ${isIncome ? 'text-emerald-500' : 'text-app-text'}`}>
+                          <span className={`text-sm font-bold shrink-0 ${isIncome ? 'text-emerald-500' : 'text-app-text'}`}>
                             {isIncome ? '+' : '-'}${tx.amount.toFixed(2)}
                           </span>
                         </div>
@@ -258,7 +326,7 @@ export const Dashboard: React.FC = () => {
       <ExpenseModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={fetchDashboardData}
+        onSave={handleModalSave}
       />
     </div>
   );

@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -10,14 +11,6 @@ import Dashboard from './pages/Dashboard';
 import Expenses from './pages/Expenses';
 
 // Placeholder components for modules not requested yet
-const ExpensesPlaceholder: React.FC = () => (
-  <div className="glass-card rounded-2xl p-8 text-center space-y-3">
-    <h2 className="text-xl font-bold tracking-tight">Expenses Module</h2>
-    <p className="text-sm text-app-text-muted max-w-md mx-auto">
-      The expense transaction system, receipt scanning, and category logging is currently in development.
-    </p>
-  </div>
-);
 
 const AnalyticsPlaceholder: React.FC = () => (
   <div className="glass-card rounded-2xl p-8 text-center space-y-3">
@@ -60,25 +53,27 @@ export const App: React.FC = () => {
     <Router>
       <ThemeProvider>
         <AuthProvider>
-          <Routes>
-            {/* Public Auth Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+          <ToastProvider>
+            <Routes>
+              {/* Public Auth Routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
-            {/* Protected Routes Layout Wrapper */}
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="expenses" element={<Expenses />} />
-              <Route path="analytics" element={<AnalyticsPlaceholder />} />
-              <Route path="budgets" element={<BudgetsPlaceholder />} />
-              <Route path="recurring" element={<RecurringPlaceholder />} />
-              <Route path="settings" element={<SettingsPlaceholder />} />
-            </Route>
+              {/* Protected Routes Layout Wrapper */}
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="expenses" element={<Expenses />} />
+                <Route path="analytics" element={<AnalyticsPlaceholder />} />
+                <Route path="budgets" element={<BudgetsPlaceholder />} />
+                <Route path="recurring" element={<RecurringPlaceholder />} />
+                <Route path="settings" element={<SettingsPlaceholder />} />
+              </Route>
 
-            {/* Catch-all Redirect */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Catch-all Redirect */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </ToastProvider>
         </AuthProvider>
       </ThemeProvider>
     </Router>

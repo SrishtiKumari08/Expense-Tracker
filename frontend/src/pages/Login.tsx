@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Wallet, TrendingUp, ShieldCheck } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -24,9 +26,12 @@ export const Login: React.FC = () => {
     setErrMessage(null);
     try {
       await login(email, password);
+      showToast('Logged in successfully!', 'success');
       navigate('/');
     } catch (err: any) {
-      setErrMessage(err.message || 'Login failed. Please check your credentials.');
+      const msg = err.message || 'Login failed. Please check your credentials.';
+      setErrMessage(msg);
+      showToast(msg, 'error');
     } finally {
       setIsLoading(false);
     }

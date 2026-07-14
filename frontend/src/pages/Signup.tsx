@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, Wallet, CheckCircle2 } from 'lucide-react';
 
 export const Signup: React.FC = () => {
   const { signup } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
@@ -36,9 +38,12 @@ export const Signup: React.FC = () => {
     setErrMessage(null);
     try {
       await signup(name, email, password);
+      showToast('Account created successfully!', 'success');
       navigate('/');
     } catch (err: any) {
-      setErrMessage(err.message || 'Registration failed. Please try again.');
+      const msg = err.message || 'Registration failed. Please try again.';
+      setErrMessage(msg);
+      showToast(msg, 'error');
     } finally {
       setIsLoading(false);
     }

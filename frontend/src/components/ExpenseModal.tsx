@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { X, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -9,22 +11,16 @@ interface ExpenseModalProps {
   expenseToEdit?: any;
 }
 
-const EXPENSE_CATEGORIES = [
-  'Food & Dining',
-  'Housing & Rent',
-  'Utilities',
-  'Entertainment',
-  'Transportation',
-  'Health & Medical',
+const DEFAULT_CATEGORIES = [
+  'Food',
   'Shopping',
-  'Others',
-];
-
-const INCOME_CATEGORIES = [
+  'Travel',
+  'Rent',
+  'Entertainment',
+  'Bills',
+  'Medical',
+  'Education',
   'Salary',
-  'Freelance',
-  'Investments',
-  'Gifts',
   'Others',
 ];
 
@@ -36,9 +32,14 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   onSave,
   expenseToEdit,
 }) => {
+  const { user, refreshUser } = useAuth();
+  const { showToast } = useToast();
+
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState<string>('');
   const [category, setCategory] = useState<string>('');
+  const [isCustomCategory, setIsCustomCategory] = useState<boolean>(false);
+  const [customCategory, setCustomCategory] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [date, setDate] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
@@ -55,8 +56,19 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       if (expenseToEdit) {
         setType(expenseToEdit.type || 'expense');
         setAmount(String(expenseToEdit.amount));
-        setCategory(expenseToEdit.category);
         setDescription(expenseToEdit.description);
+        
+        const isCustom = !DEFAULT_CATEGORIES.includes(expenseToEdit.category);
+        if (isCustom) {
+          setIsCustomCategory(true);
+          setCustomCategory(expenseToEdit.category);
+          setCategory('Custom...');
+        } else {
+          setIsCustomCategory(false);
+          setCustomCategory('');
+          setCategory(expenseToEdit.category);
+        }
+
         // Format ISO Date to YYYY-MM-DD
         const formattedDate = expenseToEdit.date
           ? new Date(expenseToEdit.date).toISOString().split('T')[0]
@@ -69,7 +81,9 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         // Reset to defaults
         setType('expense');
         setAmount('');
-        setCategory(EXPENSE_CATEGORIES[0]);
+        setIsCustomCategory(false);
+        setCustomCategory('');
+        setCategory(DEFAULT_CATEGORIES[0]);
         setDescription('');
         setDate(new Date().toISOString().split('T')[0]);
         setPaymentMethod('Cash');
@@ -78,13 +92,6 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       }
     }
   }, [isOpen, expenseToEdit]);
-
-  // Sync category if type changes
-  useEffect(() => {
-    if (!expenseToEdit) {
-      setCategory(type === 'expense' ? EXPENSE_CATEGORIES[0] : INCOME_CATEGORIES[0]);
-    }
-  }, [type, expenseToEdit]);
 
   if (!isOpen) return null;
 
@@ -103,12 +110,18 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       return;
     }
 
+    const finalCategory = isCustomCategory ? customCategory.trim() : category;
+    if (!finalCategory) {
+      setError('Please provide a category.');
+      return;
+    }
+
     setLoading(true);
 
     const payload = {
       type,
       amount: parsedAmount,
-      category,
+      category: finalCategory,
       description: description.trim(),
       date: new Date(date),
       paymentMethod,
@@ -120,21 +133,31 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       if (expenseToEdit) {
         // Edit mode
         await API.put(`/expenses/${expenseToEdit._id}`, payload);
+        showToast('Transaction updated successfully!', 'success');
       } else {
         // Add mode
         await API.post('/expenses', payload);
+        showToast('Transaction added successfully!', 'success');
       }
+      await refreshUser();
       onSave();
       onClose();
     } catch (err: any) {
       console.error('Error saving transaction:', err);
-      setError(err.response?.data?.message || 'Failed to save transaction. Please try again.');
+      const msg = err.response?.data?.message || 'Failed to save transaction. Please try again.';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  // Combine default categories and user custom categories
+  const categoriesList = [
+    ...DEFAULT_CATEGORIES,
+    ...(user?.customCategories || []).filter((c) => !DEFAULT_CATEGORIES.includes(c)),
+    'Custom...',
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -159,7 +182,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         </div>
 
         {error && (
-          <div className="mb-4 rounded-xl bg-rose-500/10 p-3 text-xs font-semibold text-rose-500 border border-rose-500/15">
+          <div className="mb-4 rounded-xl bg-rose-500/10 p-3 text-xs font-semibold text-rose-500 border border-rose-500/15 animate-pulse">
             {error}
           </div>
         )}
@@ -238,11 +261,19 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
               <select
                 id="category"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCategory(val);
+                  if (val === 'Custom...') {
+                    setIsCustomCategory(true);
+                  } else {
+                    setIsCustomCategory(false);
+                  }
+                }}
                 className="w-full rounded-xl border border-app-border bg-app-card px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-brand-primary transition-colors"
                 required
               >
-                {categories.map((cat) => (
+                {categoriesList.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
@@ -270,6 +301,24 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
               </select>
             </div>
           </div>
+
+          {/* Custom Category Input */}
+          {isCustomCategory && (
+            <div className="animate-fade-in">
+              <label htmlFor="customCategory" className="text-xs font-semibold text-app-text-muted uppercase tracking-wider block mb-1.5">
+                Custom Category Name
+              </label>
+              <input
+                id="customCategory"
+                type="text"
+                placeholder="e.g. Subscriptions, Hobbies"
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                className="w-full rounded-xl border border-app-border bg-app-card px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-brand-primary transition-colors"
+                required
+              />
+            </div>
+          )}
 
           {/* Description */}
           <div>

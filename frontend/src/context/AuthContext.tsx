@@ -6,6 +6,7 @@ export interface User {
   name: string;
   email: string;
   customCategories?: string[];
+  monthlyBudget?: number;
 }
 
 interface AuthContextType {
@@ -18,6 +19,7 @@ interface AuthContextType {
   logout: () => void;
   clearError: () => void;
   refreshUser: () => Promise<void>;
+  updateBudget: (budget: number) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -112,6 +114,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Update budget handler
+  const updateBudget = async (budget: number) => {
+    try {
+      const response = await API.put('/auth/budget', { budget });
+      setUser(response.data);
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Failed to update budget.';
+      throw new Error(message);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -124,6 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         clearError,
         refreshUser,
+        updateBudget,
       }}
     >
       {children}

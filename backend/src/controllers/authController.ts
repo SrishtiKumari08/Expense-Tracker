@@ -112,3 +112,32 @@ export const getCurrentUser = async (req: any, res: Response): Promise<void | Re
     return res.status(500).json({ message: 'Server error, failed to retrieve profile' });
   }
 };
+
+/**
+ * @desc    Update user monthly budget
+ * @route   PUT /api/auth/budget
+ * @access  Private
+ */
+export const updateMonthlyBudget = async (req: any, res: Response): Promise<void | Response> => {
+  try {
+    const { budget } = req.body;
+    if (budget === undefined || budget < 0) {
+      return res.status(400).json({ message: 'Please provide a valid budget amount greater than or equal to 0' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { monthlyBudget: budget },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    return res.json(user);
+  } catch (error) {
+    console.error('Update monthly budget error:', error);
+    return res.status(500).json({ message: 'Server error, failed to update budget' });
+  }
+};

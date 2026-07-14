@@ -9,26 +9,10 @@ import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import Expenses from './pages/Expenses';
+import Analytics from './pages/Analytics';
+import Budgets from './pages/Budgets';
 
 // Placeholder components for modules not requested yet
-
-const AnalyticsPlaceholder: React.FC = () => (
-  <div className="glass-card rounded-2xl p-8 text-center space-y-3">
-    <h2 className="text-xl font-bold tracking-tight">Analytics Dashboard</h2>
-    <p className="text-sm text-app-text-muted max-w-md mx-auto">
-      Detailed cash flow forecasting, spending heatmaps, and category breakdowns will show up here.
-    </p>
-  </div>
-);
-
-const BudgetsPlaceholder: React.FC = () => (
-  <div className="glass-card rounded-2xl p-8 text-center space-y-3">
-    <h2 className="text-xl font-bold tracking-tight">Budget Planner</h2>
-    <p className="text-sm text-app-text-muted max-w-md mx-auto">
-      Set target boundaries for categories like Food, Utilities, and Shopping, and monitor alerts.
-    </p>
-  </div>
-);
 
 const RecurringPlaceholder: React.FC = () => (
   <div className="glass-card rounded-2xl p-8 text-center space-y-3">
@@ -64,8 +48,8 @@ export const App: React.FC = () => {
               <Route path="/" element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="expenses" element={<Expenses />} />
-                <Route path="analytics" element={<AnalyticsPlaceholder />} />
-                <Route path="budgets" element={<BudgetsPlaceholder />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="budgets" element={<Budgets />} />
                 <Route path="recurring" element={<RecurringPlaceholder />} />
                 <Route path="settings" element={<SettingsPlaceholder />} />
               </Route>

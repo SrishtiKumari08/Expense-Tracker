@@ -118,9 +118,9 @@ export const Dashboard: React.FC = () => {
 
   const currentBalance = totalIncome - totalExpenses;
 
-  // Budget calculations (default budget limit of $5000)
-  const budgetLimit = 5000;
-  const budgetSpentPercent = Math.min(Math.round((totalExpenses / budgetLimit) * 100), 100);
+  // Budget calculations (default budget limit from user settings)
+  const budgetLimit = user?.monthlyBudget || 5000;
+  const budgetSpentPercent = budgetLimit > 0 ? Math.min(Math.round((totalExpenses / budgetLimit) * 100), 100) : 0;
 
   const metrics = [
     {

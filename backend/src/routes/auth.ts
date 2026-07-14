@@ -3,6 +3,7 @@ import {
   registerUser,
   loginUser,
   getCurrentUser,
+  updateMonthlyBudget,
 } from '../controllers/authController';
 import { protect } from '../middleware/auth';
 
@@ -14,5 +15,6 @@ router.post('/login', loginUser);
 
 // Protected routes
 router.get('/me', protect, getCurrentUser);
+router.put('/budget', protect, updateMonthlyBudget as any);
 
 export default router;

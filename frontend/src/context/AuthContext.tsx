@@ -7,6 +7,7 @@ export interface User {
   email: string;
   customCategories?: string[];
   monthlyBudget?: number;
+  profilePicture?: string;
 }
 
 interface AuthContextType {

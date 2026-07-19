@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
+import Expense from '../models/Expense';
 import jwt from 'jsonwebtoken';
 
 // Helper function to generate JWT
@@ -139,5 +140,114 @@ export const updateMonthlyBudget = async (req: any, res: Response): Promise<void
   } catch (error) {
     console.error('Update monthly budget error:', error);
     return res.status(500).json({ message: 'Server error, failed to update budget' });
+  }
+};
+
+/**
+ * @desc    Update user profile details
+ * @route   PUT /api/auth/profile
+ * @access  Private
+ */
+export const updateProfile = async (req: any, res: Response): Promise<void | Response> => {
+  try {
+    const { name, email, profilePicture } = req.body;
+    
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required' });
+    }
+
+    // Check email uniqueness if email is changed
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (email.toLowerCase() !== user.email.toLowerCase()) {
+      const emailExists = await User.findOne({ email: email.toLowerCase() });
+      if (emailExists) {
+        return res.status(400).json({ message: 'A user with this email already exists' });
+      }
+    }
+
+    user.name = name;
+    user.email = email.toLowerCase();
+    if (profilePicture !== undefined) {
+      user.profilePicture = profilePicture;
+    }
+
+    const updatedUser = await user.save();
+    
+    // Convert to object and strip password before sending
+    const userResponse = updatedUser.toObject();
+    delete (userResponse as any).password;
+
+    return res.json(userResponse);
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return res.status(500).json({ message: 'Server error, failed to update profile' });
+  }
+};
+
+/**
+ * @desc    Change user password
+ * @route   PUT /api/auth/password
+ * @access  Private
+ */
+export const changePassword = async (req: any, res: Response): Promise<void | Response> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Please enter both current and new passwords' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters long' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Compare with current password
+    const isMatch = await (user as any).comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Incorrect current password' });
+    }
+
+    // Update password (pre-save hook will hash it)
+    user.password = newPassword;
+    await user.save();
+
+    return res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    return res.status(500).json({ message: 'Server error, failed to update password' });
+  }
+};
+
+/**
+ * @desc    Delete user account and all their transactions
+ * @route   DELETE /api/auth/account
+ * @access  Private
+ */
+export const deleteAccount = async (req: any, res: Response): Promise<void | Response> => {
+  try {
+    const userId = req.user.id;
+
+    // Delete all expenses of the user
+    await Expense.deleteMany({ user: userId });
+
+    // Delete the user record
+    const userDeleted = await User.findByIdAndDelete(userId);
+    if (!userDeleted) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    return res.status(200).json({ message: 'Account and transactions deleted successfully' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    return res.status(500).json({ message: 'Server error, failed to delete account' });
   }
 };

@@ -8,6 +8,7 @@ export interface IUserDocument extends Schema {
   passwordHash: string;
   customCategories: string[];
   monthlyBudget: number;
+  profilePicture?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,6 +43,10 @@ const userSchema = new Schema(
     monthlyBudget: {
       type: Number,
       default: 5000,
+    },
+    profilePicture: {
+      type: String,
+      default: '',
     },
   },
   {

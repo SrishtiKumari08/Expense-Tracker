@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -46,6 +46,9 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Pending'>('Paid');
   const [notes, setNotes] = useState<string>('');
   const [upiId, setUpiId] = useState<string>('');
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [isRecurring, setIsRecurring] = useState<boolean>(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<string>('monthly');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +82,9 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         setPaymentStatus(expenseToEdit.paymentStatus || 'Paid');
         setNotes(expenseToEdit.notes || '');
         setUpiId(expenseToEdit.upiId || '');
+        setIsFavorite(expenseToEdit.isFavorite || false);
+        setIsRecurring(expenseToEdit.isRecurring || false);
+        setRecurringFrequency(expenseToEdit.recurringFrequency && expenseToEdit.recurringFrequency !== 'none' ? expenseToEdit.recurringFrequency : 'monthly');
       } else {
         // Reset to defaults
         setType('expense');
@@ -92,6 +98,9 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         setPaymentStatus('Paid');
         setNotes('');
         setUpiId('');
+        setIsFavorite(false);
+        setIsRecurring(false);
+        setRecurringFrequency('monthly');
       }
     }
   }, [isOpen, expenseToEdit]);
@@ -142,6 +151,9 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       paymentStatus,
       notes: notes.trim() || undefined,
       upiId: paymentMethod === 'UPI' ? upiId.trim() : undefined,
+      isFavorite,
+      isRecurring,
+      recurringFrequency: isRecurring ? recurringFrequency : 'none',
     };
 
     try {
@@ -397,6 +409,53 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
               className="w-full rounded-xl border border-app-border bg-app-card px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-brand-primary transition-colors"
               required
             />
+          </div>
+
+          {/* Favorite & Recurring Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-app-border/40 pt-3">
+            {/* Favorite toggle */}
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => setIsFavorite(!isFavorite)}
+                className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
+                  isFavorite
+                    ? 'bg-rose-500/10 text-rose-500 border-rose-500/30 shadow-sm'
+                    : 'bg-app-card text-app-text-muted border-app-border hover:bg-app-bg'
+                }`}
+              >
+                <Heart className={`h-4.5 w-4.5 ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-rose-500'}`} />
+                {isFavorite ? 'Marked Favorite' : 'Mark Favorite'}
+              </button>
+            </div>
+
+            {/* Recurring toggle */}
+            <div className="flex flex-col gap-1.5 justify-center">
+              <label className="flex items-center gap-2 text-sm font-semibold text-app-text select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="h-4 w-4 rounded border-app-border text-brand-primary focus:ring-brand-primary"
+                />
+                Make Recurring
+              </label>
+              
+              {isRecurring && (
+                <div className="animate-fade-in">
+                  <select
+                    value={recurringFrequency}
+                    onChange={(e) => setRecurringFrequency(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-app-border bg-app-card focus:outline-none focus:border-brand-primary transition-colors cursor-pointer"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Payment Status & Notes */}

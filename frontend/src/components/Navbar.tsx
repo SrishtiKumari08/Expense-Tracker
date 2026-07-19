@@ -70,9 +70,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center gap-3 rounded-lg p-1.5 text-left focus:outline-none hover:bg-app-bg transition-colors duration-150"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-brand-primary border border-indigo-500/20 font-semibold">
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
+                {user.profilePicture ? (
+                  <img
+                    src={user.profilePicture}
+                    alt={user.name}
+                    className="h-8 w-8 rounded-lg object-cover border border-indigo-500/20"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-brand-primary border border-indigo-500/20 font-semibold">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium leading-none">{user.name}</p>
                   <p className="text-xs text-app-text-muted mt-0.5">{user.email}</p>

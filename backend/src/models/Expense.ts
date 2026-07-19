@@ -11,6 +11,10 @@ export interface IExpense extends Document {
   paymentStatus: 'Paid' | 'Pending';
   notes?: string;
   upiId?: string;
+  isFavorite: boolean;
+  isRecurring: boolean;
+  recurringFrequency: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+  nextDueDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +70,22 @@ const expenseSchema = new Schema<IExpense>(
     upiId: {
       type: String,
       trim: true,
+    },
+    isFavorite: {
+      type: Boolean,
+      default: false,
+    },
+    isRecurring: {
+      type: Boolean,
+      default: false,
+    },
+    recurringFrequency: {
+      type: String,
+      enum: ['none', 'daily', 'weekly', 'monthly', 'yearly'],
+      default: 'none',
+    },
+    nextDueDate: {
+      type: Date,
     },
   },
   {

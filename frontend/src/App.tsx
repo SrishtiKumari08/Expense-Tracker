@@ -12,17 +12,7 @@ import Expenses from './pages/Expenses';
 import Analytics from './pages/Analytics';
 import Budgets from './pages/Budgets';
 import PaymentHistory from './pages/PaymentHistory';
-
-// Placeholder components for modules not requested yet
-
-const SettingsPlaceholder: React.FC = () => (
-  <div className="glass-card rounded-2xl p-8 text-center space-y-3">
-    <h2 className="text-xl font-bold tracking-tight">User Settings</h2>
-    <p className="text-sm text-app-text-muted max-w-md mx-auto">
-      Manage profile details, update password hashes, customize theme preferences, or reset tracking sessions.
-    </p>
-  </div>
-);
+import Settings from './pages/Settings';
 
 export const App: React.FC = () => {
   return (
@@ -43,7 +33,7 @@ export const App: React.FC = () => {
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="budgets" element={<Budgets />} />
                 <Route path="payments" element={<PaymentHistory />} />
-                <Route path="settings" element={<SettingsPlaceholder />} />
+                <Route path="settings" element={<Settings />} />
               </Route>
 
               {/* Catch-all Redirect */}
